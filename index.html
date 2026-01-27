@@ -310,7 +310,7 @@
                 statusText.textContent = 'Online';
             } else {
                 indicator.className = 'status-indicator offline';
-                statusText.textContent = 'Offline - Data will be queued';
+                statusText.textContent = 'Offline';
             }
             updatePendingCount();
         }
@@ -368,7 +368,7 @@
                             });
                         });
                     }
-                    message.innerHTML = '<div class="info">Data queued. Will send when connection is restored.</div>';
+                    message.innerHTML = '<div class="info">Data will be sent when connection is available.</div>';
                     document.getElementById('data').value = '';
                 }
                 updatePendingCount();
@@ -380,7 +380,7 @@
                         });
                     });
                 }
-                message.innerHTML = '<div class="info">Data queued. Will send when connection is restored.</div>';
+                message.innerHTML = '<div class="info">Data will be sent when connection is available.</div>';
                 document.getElementById('data').value = '';
                 updatePendingCount();
             } finally {
