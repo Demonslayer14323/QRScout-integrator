@@ -2,7 +2,71 @@
 
 This file documents the offline app configuration.
 
-## Applications Script Setup
+## Google Sheets Direct Access Setup (Recommended for Offline)
+
+The app now supports **direct offline writing to Google Sheets** using OAuth 2.0 authentication!
+
+### How It Works
+
+1. **Sign in once** with your Google account
+2. **Grant permission** to edit your Google Sheets
+3. **Access token is stored locally** in your browser
+4. **Write directly to Google Sheets offline** - no internet needed after initial setup
+5. **Data syncs automatically** when connection returns
+
+### Step 1: Create OAuth 2.0 Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable "Google Sheets API":
+   - Go to "APIs & Services" → "Library"
+   - Search for "Google Sheets API"
+   - Click it and press "Enable"
+4. Create OAuth consent screen:
+   - Go to "APIs & Services" → "OAuth consent screen"
+   - Choose "External" user type
+   - Fill in app name: "QRScout Integrator"
+   - Add your email as test user
+5. Create OAuth credentials:
+   - Go to "Credentials"
+   - Click "Create Credentials" → "OAuth client ID"
+   - Type: "Web application"
+   - Authorized JavaScript origins: Add your app URL (e.g., `http://localhost:8000`, `https://yourusername.github.io`)
+   - Save your Client ID
+
+### Step 2: Update the App Configuration
+
+1. Open `index.html` in a text editor
+2. Find this line (around line 214):
+   ```javascript
+   const CLIENT_ID = ''; // Will be set by user or use a generic one
+   ```
+3. Replace with your Client ID:
+   ```javascript
+   const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+   ```
+4. Save the file
+
+### Step 3: Get Your Google Sheet ID
+
+1. Open your Google Sheet
+2. Look at the URL: `https://docs.google.com/spreadsheets/d/SHEET_ID/edit`
+3. Copy the `SHEET_ID` part (long string of letters and numbers)
+
+### Step 4: Use the App
+
+1. Open the app
+2. Click "Sign in to Google" button (top right)
+3. Follow the Google login flow
+4. Grant permission to edit Google Sheets
+5. Paste your **Google Sheet ID** (not URL) in the input field
+6. Paste your scouting data
+7. Click "Send to Google Sheets"
+8. **Data sends immediately** - even if you go offline!
+
+## Alternative: Apps Script Setup
+
+If you prefer using Apps Script instead:
 
 ### Getting Your Apps Script URL
 
@@ -14,40 +78,55 @@ This file documents the offline app configuration.
 6. Click "Deploy"
 7. Copy the deployment URL (format: `https://script.google.com/macros/s/...`)
 
-### Setting the URL
+### Using with Apps Script
 
-The app comes pre-configured with an example URL. To use your own:
-
-1. Open the app
-2. Paste your Apps Script URL in the "Apps Script URL" field
-3. The URL is saved locally in your browser
+1. Paste your Apps Script URL in the input field
+2. Paste your scouting data
+3. Click "Send to Google Sheets"
+4. Data queues offline and syncs when connection returns
 
 ## Testing
 
-### Test Online Submission
+### Test Online - Google Sheets API
 
-1. Start the app and ensure you're online
-2. Paste test scouting data
+1. Sign in to Google (click button)
+2. Paste your Sheet ID
+3. Paste test data
+4. Click "Send to Google Sheets"
+5. See "Data sent successfully" message
+6. Check your Google Sheet - **data appears instantly!** ✅
+
+### Test Offline - Google Sheets API
+
+1. Sign in to Google first (connection must be on)
+2. Open DevTools (F12)
+3. Network tab → Check "Offline"
+4. Paste your Sheet ID
+5. Paste test data
+6. Click "Send to Google Sheets"
+7. See "Data sent successfully" message **even though you're offline!** ✅
+8. Check your Sheet - data is there!
+
+### Test Online - Apps Script
+
+1. Paste your Apps Script URL
+2. Paste test data
 3. Click "Send to Google Sheets"
-4. Check your Google Sheet for new entry
+4. See "Data sent successfully" message
+5. Check your Google Sheet for new entry
 
-### Test Offline Mode
-
-1. Open DevTools (F12)
-2. Go to Network tab
-3. Check "Offline" checkbox
-4. Paste test data and click "Send to Google Sheets"
-5. You should see "Data saved offline" message
-6. Uncheck "Offline" and data should auto-sync
-
-### Test Service Worker
+### Test Offline - Apps Script
 
 1. Open DevTools (F12)
-2. Go to Application tab
-3. Service Workers section shows registration status
-4. Manifest shows installed manifest.json
+2. Network tab → Check "Offline"
+3. Paste test data and click "Send to Google Sheets"
+4. You should see "Data queued" message
+5. Go back online
+6. See "Sent X queued submissions" message
+7. Check your Google Sheet
 
 ## Troubleshooting
+
 
 ### Service Worker Issues
 - Check that `sw.js` loads (check Network tab)
