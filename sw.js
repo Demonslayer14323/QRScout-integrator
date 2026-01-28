@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qrscout-v1';
+const CACHE_NAME = 'qrscout-v2';
 const urlsToCache = [
     '/',
     '/index.html',

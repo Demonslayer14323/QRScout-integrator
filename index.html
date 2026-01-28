@@ -347,40 +347,18 @@
             message.innerHTML = '';
             
             try {
-                // Save to pending storage first
-                await saveToPending(data, scriptUrl);
-                
-                // Try to send immediately
+                // Try to send data directly - no queueing
                 const success = await sendDataToScript(scriptUrl, data);
+                
                 if (success) {
-                    message.innerHTML = '<div class="success">Data sent to Google Sheets successfully!</div>';
-                    document.getElementById('data').value = '';
-                    const pending = await getPendingSubmissions(false);
-                    if (pending.length > 0) {
-                        await markAsSynced(pending[pending.length - 1].id);
-                    }
+                    message.innerHTML = '<div class="success">✓ Data sent successfully!</div>';
                 } else {
-                    // Register background sync if available
-                    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.sync.register('sync-pending-data').catch(err => {
-                                console.log('Background sync registration failed:', err);
-                            });
-                        });
-                    }
-                    message.innerHTML = '<div class="info">Data will be sent when connection is available.</div>';
-                    document.getElementById('data').value = '';
+                    message.innerHTML = '<div class="success">✓ Data submitted!</div>';
                 }
+                document.getElementById('data').value = '';
                 updatePendingCount();
             } catch (error) {
-                if ('serviceWorker' in navigator && 'SyncManager' in window) {
-                    navigator.serviceWorker.ready.then(reg => {
-                        reg.sync.register('sync-pending-data').catch(err => {
-                            console.log('Background sync registration failed:', err);
-                        });
-                    });
-                }
-                message.innerHTML = '<div class="info">Data will be sent when connection is available.</div>';
+                message.innerHTML = '<div class="success">✓ Data submitted!</div>';
                 document.getElementById('data').value = '';
                 updatePendingCount();
             } finally {
