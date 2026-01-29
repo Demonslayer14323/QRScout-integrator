@@ -479,6 +479,12 @@
                 return;
             }
             
+            // Check if online before attempting to send
+            if (!navigator.onLine) {
+                message.innerHTML = '<div class="error">⚠️ No internet connection. Please connect to the internet and try again. Data will NOT be sent automatically when connection returns.</div>';
+                return;
+            }
+            
             button.disabled = true;
             button.textContent = 'Sending...';
             message.innerHTML = '';
@@ -524,7 +530,11 @@
                 }
             } catch (error) {
                 console.error('Send error:', error);
-                message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
+                if (!navigator.onLine) {
+                    message.innerHTML = '<div class="error">⚠️ Connection lost while sending. Please check your internet connection and try again.</div>';
+                } else {
+                    message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
+                }
             } finally {
                 button.disabled = false;
                 button.textContent = 'Send to Google Sheets';
@@ -566,19 +576,7 @@
             document.getElementById('message').innerHTML = '';
         }
 
-        // Clear any existing queued data from IndexedDB
-        function clearQueuedData() {
-            const dbRequest = indexedDB.deleteDatabase('QRScoutDB');
-            dbRequest.onsuccess = () => {
-                console.log('Cleared queued data from IndexedDB');
-            };
-            dbRequest.onerror = () => {
-                console.log('Error clearing queued data');
-            };
-        }
-
         // Initialize
-        clearQueuedData(); // Clear any old queued data
         updateStatusBar();
         // If Google library already loaded (unlikely but possible), initialize it
         if (window.google && window.google.accounts && !googleLibraryLoaded) {
