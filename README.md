@@ -2,6 +2,22 @@
 
 A progressive web app (PWA) that allows you to use the QRScout data integrator as an installable app with offline caching and direct Google Sheets integration.
 
+## 🎯 Does It Send Data to Google Sheets?
+
+**YES! ✅** This app **DOES send data to Google Sheets** when you have an internet connection.
+
+- ✅ **Two methods available:** Apps Script URL (recommended) or Google Sheets API
+- ✅ **Fully functional implementation** with proper error handling
+- ✅ **Data appears immediately** in your Google Sheet upon successful send
+- ✅ **See [HOW_IT_WORKS.md](HOW_IT_WORKS.md)** for complete technical details
+
+**Quick Start:**
+1. Set up your Apps Script using [CONFIG.md](CONFIG.md)
+2. Paste your Apps Script URL in the app
+3. Paste your data
+4. Click "Send to Google Sheets"
+5. **Done! Your data is in Google Sheets** 🎉
+
 ## ⚠️ Important: Google OAuth Issue
 
 **If you get "Access blocked: This app has not completed Google verification"** when signing in:
