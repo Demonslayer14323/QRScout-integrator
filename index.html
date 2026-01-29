@@ -6,7 +6,6 @@
     <title>QRScout Standalone Integrator</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4285f4">
-    <script src="https://accounts.google.com/gsi/client" async defer onload="onGoogleLibraryLoad()" onerror="onGoogleLibraryError()"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -578,9 +577,51 @@
 
         // Initialize
         updateStatusBar();
-        // If Google library already loaded (unlikely but possible), initialize it
-        if (window.google && window.google.accounts && !googleLibraryLoaded) {
-            onGoogleLibraryLoad();
+        
+        // Load Google Sign-In library dynamically with timeout for offline support
+        function loadGoogleLibrary() {
+            // Check if already loaded
+            if (window.google && window.google.accounts) {
+                onGoogleLibraryLoad();
+                return;
+            }
+            
+            // Set a timeout to handle offline scenarios - don't let it block the app
+            const timeout = setTimeout(() => {
+                if (!googleLibraryLoaded) {
+                    console.log('Google Sign-In library loading timeout (offline mode)');
+                    googleLibraryError = true;
+                    const button = document.getElementById('authButton');
+                    if (button) {
+                        button.textContent = 'Sign in (Offline)';
+                        button.disabled = true;
+                        button.title = 'Google Sign-In is not available offline. Use Apps Script URL for offline-capable sending.';
+                    }
+                }
+            }, 5000); // 5 second timeout
+            
+            // Try to load the Google library
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                clearTimeout(timeout);
+                onGoogleLibraryLoad();
+            };
+            script.onerror = () => {
+                clearTimeout(timeout);
+                onGoogleLibraryError();
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Load Google library after page is ready (non-blocking)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGoogleLibrary);
+        } else {
+            // DOM already loaded
+            loadGoogleLibrary();
         }
     </script>
 </body>
