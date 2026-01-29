@@ -31,21 +31,39 @@ This is the **easiest and most reliable solution** that doesn't require Google S
 3. **Example Apps Script Code:**
 ```javascript
 function doPost(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const data = e.parameter.data;
-  
-  // Parse tab-delimited data
-  const rows = data.split('\n').map(row => row.split('\t'));
-  
-  // Append to sheet
-  rows.forEach(row => {
-    sheet.appendRow(row);
-  });
-  
-  return ContentService.createTextOutput(JSON.stringify({
-    success: true,
-    message: 'Data added successfully'
-  })).setMimeType(ContentService.MimeType.JSON);
+  try {
+    // Get the active spreadsheet and sheet
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Get the data from the POST request
+    const data = e.parameter.data;
+    
+    if (!data) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'No data provided'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Parse tab-delimited data into rows
+    const rows = data.trim().split('\n').map(row => row.split('\t'));
+    
+    // Append each row to the sheet
+    rows.forEach(row => {
+      sheet.appendRow(row);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: `Successfully added ${rows.length} row(s)`
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 ```
 

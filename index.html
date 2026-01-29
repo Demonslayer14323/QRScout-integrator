@@ -334,7 +334,13 @@
                     console.error('OAuth error:', response);
                     
                     // Handle specific error types
-                    if (response.error === 'access_denied' || response.error_description?.includes('verification')) {
+                    const errorDesc = response.error_description || '';
+                    const isVerificationError = errorDesc.includes('verification') || 
+                                               errorDesc.includes('unverified') ||
+                                               errorDesc.includes('not completed');
+                    
+                    if (response.error === 'access_denied' && isVerificationError) {
+                        // This is a verification issue
                         document.getElementById('message').innerHTML = `
                             <div class="error">
                                 <strong>Access Blocked: Google OAuth Verification Required</strong>
@@ -355,6 +361,9 @@
                                 <p style="margin-top: 10px;"><em>For more details, see CONFIG.md in the repository.</em></p>
                             </div>
                         `;
+                    } else if (response.error === 'access_denied') {
+                        // User cancelled the sign-in
+                        document.getElementById('message').innerHTML = `<div class="info">Sign-in cancelled. Click the button to try again.</div>`;
                     } else {
                         document.getElementById('message').innerHTML = `<div class="error">Authentication failed: ${response.error_description || response.error}</div>`;
                     }
@@ -613,7 +622,7 @@
                 let success = false;
                 let method = 'unknown';
 
-                // Check if it's a Sheet ID (36 characters) or Apps Script URL
+                // Check if it's a Sheet ID (44 characters) or Apps Script URL
                 if (scriptUrl.length === 44 && !scriptUrl.includes('/')) {
                     // Likely a Sheet ID
                     method = 'sheets-api';
