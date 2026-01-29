@@ -186,12 +186,18 @@
                 <li>Use QRScout to collect scouting data</li>
                 <li>Copy the data from the QR model</li> 
                 <li>Paste the data into the box below</li>
+                <li>Enter your <strong>Apps Script URL</strong> or Sheet ID (see note below)</li>
                 <li>Click "Send to Google Sheets"</li>
             </ol>
+            <p style="margin-top: 10px; font-size: 13px; color: #666;">
+                <strong>Note:</strong> Due to Google's OAuth verification requirements, we recommend using an <strong>Apps Script URL</strong> 
+                instead of direct Sheet ID access. Apps Script URLs work without Google Sign-In and are more reliable.
+                See <a href="CONFIG.md" target="_blank">CONFIG.md</a> for setup instructions.
+            </p>
         </div>
         
-        <label for="scriptUrl">Google Sheet ID or Apps Script URL:</label><br>
-        <input type="text" id="scriptUrl" placeholder="Paste your Google Sheet ID (from URL) or Apps Script URL" title="Find your Sheet ID in the URL: docs.google.com/spreadsheets/d/[SHEET_ID]/edit"><br>
+        <label for="scriptUrl">Apps Script URL (recommended) or Google Sheet ID:</label><br>
+        <input type="text" id="scriptUrl" placeholder="Paste your Apps Script URL (https://script.google.com/...) or Sheet ID" title="Apps Script URL works without sign-in. Sheet ID requires Google Sign-In and may need verification."><br>
         
         <label for="data">Paste QRScout Data Here:</label><br>
         <textarea id="data" placeholder="Paste your tab-delimited scouting data here..."></textarea><br>
@@ -325,7 +331,43 @@
         function requestAccessToken() {
             tokenClient.callback = async (response) => {
                 if (response.error !== undefined) {
-                    throw response;
+                    console.error('OAuth error:', response);
+                    
+                    // Handle specific error types
+                    const errorDesc = response.error_description || '';
+                    const isVerificationError = errorDesc.includes('verification') || 
+                                               errorDesc.includes('unverified') ||
+                                               errorDesc.includes('not completed');
+                    
+                    if (response.error === 'access_denied' && isVerificationError) {
+                        // This is a verification issue
+                        document.getElementById('message').innerHTML = `
+                            <div class="error">
+                                <strong>Access Blocked: Google OAuth Verification Required</strong>
+                                <p>This app needs to complete Google's verification process, or you need to be added as a test user.</p>
+                                <p><strong>Solution 1 (Recommended): Use Apps Script instead</strong></p>
+                                <ol style="margin-top: 10px; padding-left: 20px;">
+                                    <li>Instead of a Sheet ID, paste your Apps Script URL</li>
+                                    <li>Apps Script URLs look like: <code style="font-size: 11px;">https://script.google.com/macros/s/.../exec</code></li>
+                                    <li>This method works without Google Sign-In</li>
+                                </ol>
+                                <p><strong>Solution 2: Add yourself as a test user</strong></p>
+                                <ol style="margin-top: 10px; padding-left: 20px;">
+                                    <li>Go to <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank">Google Cloud Console</a></li>
+                                    <li>Find the OAuth consent screen for this app</li>
+                                    <li>Add your email to "Test users"</li>
+                                    <li>Try signing in again</li>
+                                </ol>
+                                <p style="margin-top: 10px;"><em>For more details, see CONFIG.md in the repository.</em></p>
+                            </div>
+                        `;
+                    } else if (response.error === 'access_denied') {
+                        // User cancelled the sign-in
+                        document.getElementById('message').innerHTML = `<div class="info">Sign-in cancelled. Click the button to try again.</div>`;
+                    } else {
+                        document.getElementById('message').innerHTML = `<div class="error">Authentication failed: ${response.error_description || response.error}</div>`;
+                    }
+                    return;
                 }
                 accessToken = response.access_token;
                 localStorage.setItem('google_access_token', accessToken);
@@ -580,12 +622,19 @@
                 let success = false;
                 let method = 'unknown';
 
-                // Check if it's a Sheet ID (36 characters) or Apps Script URL
+                // Check if it's a Sheet ID (44 characters) or Apps Script URL
                 if (scriptUrl.length === 44 && !scriptUrl.includes('/')) {
                     // Likely a Sheet ID
                     method = 'sheets-api';
                     if (!accessToken) {
-                        message.innerHTML = '<div class="error">Please sign in to Google first to use direct Sheet access!</div>';
+                        message.innerHTML = `
+                            <div class="error">
+                                <strong>Google Sign-In Required</strong>
+                                <p>To use Sheet ID, you must sign in to Google first. However, this may fail if you're not added as a test user.</p>
+                                <p><strong>Recommended Alternative:</strong> Use an <strong>Apps Script URL</strong> instead, which works without sign-in.</p>
+                                <p>See <a href="CONFIG.md" target="_blank">CONFIG.md</a> for instructions on setting up Apps Script.</p>
+                            </div>
+                        `;
                         button.disabled = false;
                         button.textContent = 'Send to Google Sheets';
                         return;
