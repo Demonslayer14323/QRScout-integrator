@@ -6,7 +6,7 @@
     <title>QRScout Standalone Integrator</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4285f4">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer onload="onGoogleLibraryLoad()" onerror="onGoogleLibraryError()"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -216,25 +216,68 @@
         let tokenClient;
         let accessToken = null;
         let userEmail = null;
+        let googleLibraryLoaded = false;
+        let googleLibraryError = false;
+
+        // Callback when Google library loads successfully
+        function onGoogleLibraryLoad() {
+            if (googleLibraryLoaded) {
+                return; // Already initialized, prevent double initialization
+            }
+            googleLibraryLoaded = true;
+            initializeGoogleAuth();
+        }
+
+        // Callback when Google library fails to load
+        function onGoogleLibraryError() {
+            googleLibraryError = true;
+            console.error('Failed to load Google Sign-In library');
+            const button = document.getElementById('authButton');
+            if (button) {
+                button.textContent = 'Sign-in unavailable';
+                button.disabled = true;
+                button.title = 'Google Sign-In library could not be loaded. Check your internet connection or browser extensions.';
+            }
+        }
 
         // Initialize Google Sign-In
         function initializeGoogleAuth() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID || '793535249118-fmk9j4hbpg7i6gh9fmjfk7b4eckt3tbg.apps.googleusercontent.com',
-                scope: SCOPES,
-                callback: '', // Set in requestAccessToken
-            });
+            if (!window.google || !window.google.accounts) {
+                console.error('Google library not available');
+                return;
+            }
 
-            // Check if token exists in storage
-            const storedToken = localStorage.getItem('google_access_token');
-            if (storedToken) {
-                accessToken = storedToken;
-                userEmail = localStorage.getItem('google_user_email');
-                updateAuthButton();
+            try {
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID || '793535249118-fmk9j4hbpg7i6gh9fmjfk7b4eckt3tbg.apps.googleusercontent.com',
+                    scope: SCOPES,
+                    callback: '', // Set in requestAccessToken
+                });
+
+                // Check if token exists in storage
+                const storedToken = localStorage.getItem('google_access_token');
+                if (storedToken) {
+                    accessToken = storedToken;
+                    userEmail = localStorage.getItem('google_user_email');
+                    updateAuthButton();
+                }
+            } catch (error) {
+                console.error('Error initializing Google Auth:', error);
+                onGoogleLibraryError();
             }
         }
 
         function handleAuthClick() {
+            if (googleLibraryError) {
+                document.getElementById('message').innerHTML = '<div class="error">Google Sign-In is unavailable. The library could not be loaded. Please check your internet connection or disable ad blockers.</div>';
+                return;
+            }
+
+            if (!googleLibraryLoaded || !tokenClient) {
+                document.getElementById('message').innerHTML = '<div class="info">Loading Google Sign-In... Please wait.</div>';
+                return;
+            }
+
             if (accessToken) {
                 // Sign out
                 signOut();
@@ -658,8 +701,12 @@
         }
 
         // Initialize
-        Promise.all([initDB(), initializeGoogleAuth()]).then(() => {
+        initDB().then(() => {
             updateStatusBar();
+            // If Google library already loaded (unlikely but possible), initialize it
+            if (window.google && window.google.accounts && !googleLibraryLoaded) {
+                onGoogleLibraryLoad();
+            }
         });
 
         // Periodic sync every 30 seconds
