@@ -431,6 +431,13 @@
             return lines.map(line => line.split('\t'));
         }
 
+        // Register Service Worker for offline caching
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('Service Worker registration failed:', err);
+            });
+        }
+
         // Online/offline detection
         let isOnline = navigator.onLine;
 
@@ -550,25 +557,6 @@
                 return result.success === true;
             } catch (error) {
                 console.error('Apps Script error:', error);
-                return false;
-            }
-        }
-
-        async function sendDataToScript(scriptUrl, data) {
-            try {
-                const response = await fetch(scriptUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        data: data
-                    })
-                });
-                
-                const result = await response.json();
-                return result.success === true;
-            } catch (error) {
                 return false;
             }
         }

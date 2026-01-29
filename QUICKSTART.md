@@ -1,15 +1,15 @@
 <!-- Quick Start Guide - Open this in a browser or read as text -->
 
-# 🚀 QRScout Offline Integrator - Quick Start
+# 🚀 QRScout Integrator - Quick Start
 
 ## What You Have
 
-A **fully offline-capable web app** that:
-- ✅ Works when you're offline
-- ✅ Queues data automatically
-- ✅ Syncs when connection returns
-- ✅ Sends data to Google Sheets
+A **progressive web app (PWA)** that:
 - ✅ Can be installed as a native app
+- ✅ App interface works offline (cached)
+- ✅ Sends data directly to Google Sheets when online
+- ✅ Shows clear error messages if sending fails
+- ✅ Keeps data in text box for retry if needed
 
 ## Try It Now (Local)
 
@@ -20,15 +20,13 @@ cd /workspaces/QRScout-integrator
 
 Then visit: **http://localhost:8000**
 
-## Test Offline Mode
+## Test the App
 
 1. Open the app
-2. Press **F12** to open Developer Tools
-3. Click the **Network** tab
-4. Check the **Offline** checkbox
-5. Paste test scouting data and click "Send to Google Sheets"
-6. You'll see: "Data saved offline"
-7. Uncheck **Offline** → data auto-syncs!
+2. Paste test scouting data
+3. Click "Send to Google Sheets"
+4. With internet: See success message, check your Google Sheet
+5. Without internet: See error message, data stays in text box to retry later
 
 ## Deploy Online (Pick One)
 
@@ -64,21 +62,22 @@ Then visit: **http://localhost:8000**
 
 ## Features
 
-### Online
+### When Online
 - Submit data, it goes directly to Google Sheets
-- Instant feedback
+- Instant success message on successful send
+- Error message if sending fails
 
-### Offline
-- Submit data, it's saved locally
-- Status shows "Offline - Data will be queued"
-- Click "Show Queue" to see pending submissions
-- When you go online → Auto-sync!
+### When Offline
+- App interface still accessible (cached by Service Worker)
+- Cannot send data without connection
+- Error message shown if you try to send
+- Data remains in text box for retry when connection returns
 
 ### PWA Installation
 - Desktop: Look for install icon in address bar
 - Mobile: Use "Add to Home Screen"
 - Works like a native app
-- Still works offline!
+- App interface cached for offline access
 
 ## Troubleshooting
 
@@ -87,21 +86,18 @@ Then visit: **http://localhost:8000**
 - Refresh the page
 - Check console (F12)
 
-**Data not syncing?**
-- Check your Apps Script URL
-- Verify the Google Sheet is accessible
-- Check console errors
-
-**Can't see offline data?**
-- Go to DevTools → Application → IndexedDB
-- Look for "QRScoutDB"
+**Data not sending?**
+- Check internet connection
+- Verify your Apps Script URL
+- Check console errors (F12)
+- Retry when connection is available
 
 ## Files Explained
 
 | File | Purpose |
 |------|---------|
 | `index.html` | The app (open in browser) |
-| `sw.js` | Offline magic (Service Worker) |
+| `sw.js` | Offline caching (Service Worker) |
 | `manifest.json` | Makes it installable (PWA) |
 | `README.md` | Full documentation |
 | `DEPLOYMENT.md` | How to deploy |
@@ -112,7 +108,7 @@ Then visit: **http://localhost:8000**
 1. ✅ Test locally: `./run.sh`
 2. ✅ Deploy to GitHub Pages / Netlify / Vercel
 3. ✅ Share URL with your team
-4. ✅ Start using offline!
+4. ✅ Install as PWA for easy access
 
 ## Need Help?
 
@@ -123,4 +119,4 @@ Then visit: **http://localhost:8000**
 
 ---
 
-**That's it! You now have an offline-capable QRScout integrator!** 🎉
+**That's it! You now have a PWA QRScout integrator!** 🎉

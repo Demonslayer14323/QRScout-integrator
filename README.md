@@ -1,6 +1,6 @@
-# QRScout Standalone Integrator - Offline Edition
+# QRScout Standalone Integrator - PWA Edition
 
-A progressive web app (PWA) that allows you to use the QRScout data integrator **completely offline** while maintaining the ability to send data to Google Sheets when you're back online.
+A progressive web app (PWA) that allows you to use the QRScout data integrator as an installable app with offline caching and direct Google Sheets integration.
 
 ## ⚠️ Important: Google OAuth Issue
 
@@ -21,29 +21,25 @@ This is expected! The app hasn't completed Google's OAuth verification process. 
 
 ## Features
 
-✅ **Works Completely Offline** - Use the app without internet connection
-✅ **Automatic Sync** - Queued data is automatically sent when connection is restored
-✅ **Offline Queue Management** - View and manage pending submissions
 ✅ **PWA Support** - Install as a native app on your device
-✅ **No Server Required** - Pure client-side solution using IndexedDB and Service Workers
-✅ **Same Google Sheets Integration** - Works with your existing Apps Script URL
+✅ **Offline App Caching** - App interface works without internet connection
+✅ **Direct Sheets Integration** - Send data directly to Google Sheets when online
+✅ **No Server Required** - Pure client-side solution using Service Workers for app caching
+✅ **Apps Script Integration** - Works with your existing Apps Script URL
+✅ **Error Handling** - Clear error messages if sending fails
 
 ## How It Works
 
 ### Online Mode
 - Data is sent immediately to Google Sheets via the Apps Script endpoint
-- Same behavior as the original integrator
+- You'll see a success message when data is sent
+- If sending fails, you'll see an error message
 
 ### Offline Mode
-- Data is automatically saved to the browser's local storage (IndexedDB)
-- You can continue collecting and queueing data
-- Status bar shows "Offline - Data will be queued"
-- View pending submissions in the queue manager
-
-### Automatic Sync
-- When your connection is restored, pending submissions automatically sync
-- You'll see a success message for each synced submission
-- Any failures will remain in the queue for retry
+- The app interface remains accessible (cached by Service Worker)
+- Data cannot be sent without an internet connection
+- You'll see an error message if you try to send while offline
+- Data stays in the text box for you to retry when connection returns
 
 ## Installation & Usage
 
@@ -95,31 +91,25 @@ Deploy the files to any static hosting service:
 3. **Submit Data**
    - Paste data into the text area
    - Click "Send to Google Sheets"
-   - Online: Data sends immediately
-   - Offline: Data is queued and will send when online
-
-4. **Manage Queue**
-   - Click "Show Queue" to see pending submissions
-   - Delete individual submissions if needed
-   - All submissions will attempt to sync when online
+   - Online: Data sends immediately with success message
+   - Offline: Error message shown, data stays in text box for retry
 
 ## Technical Details
 
 ### Technologies Used
-- **Service Worker** - Enables offline functionality and caching
-- **IndexedDB** - Local database for storing pending submissions
+- **Service Worker** - Enables offline app caching
 - **Fetch API** - For sending data to Google Sheets
 - **Progressive Web App** - installable app manifest
 
 ### Storage
-- Data is stored locally in your browser only
-- No data is sent to any server except your Apps Script endpoint
-- Clearing browser data will delete the queue
+- Only your Apps Script URL is saved in browser localStorage
+- No scouting data is stored locally
+- Data is only sent when you click "Send to Google Sheets" with internet connection
 - Fully privacy-respecting
 
 ### Browser Support
 - Chrome/Edge: Full support
-- Firefox: Full support (IndexedDB may need to be enabled)
+- Firefox: Full support
 - Safari: Partial support (PWA installation works differently)
 - Mobile Browsers: Full support
 
@@ -135,21 +125,17 @@ Deploy the files to any static hosting service:
 
 ### Key Features in Code
 
-#### Offline Detection
+#### Service Worker Caching
 ```javascript
-window.addEventListener('online', syncPendingSubmissions);
-window.addEventListener('offline', updateStatusBar);
+// Caches app assets for offline access to the app interface
+self.addEventListener('install', cacheAppAssets);
+self.addEventListener('fetch', serveCachedAssets);
 ```
 
-#### Data Queueing
-Uses IndexedDB to store submissions with:
-- Data content
-- Apps Script URL
-- Timestamp
-- Sync status
-
-#### Auto-Sync
-When connection is restored, all pending submissions are automatically sent in order.
+#### Direct Send
+- Data is sent directly to Google Sheets when you click the button
+- Errors are displayed if sending fails
+- No automatic retry or queueing
 
 ## Troubleshooting
 
@@ -158,11 +144,11 @@ When connection is restored, all pending submissions are automatically sent in o
 - Check browser console for errors
 - May need to clear site data and reload
 
-### Data Not Syncing
+### Data Not Sending
+- Ensure you have an internet connection
 - Check your Apps Script URL is correct
 - Verify the Apps Script is deployed and accessible
 - Check browser console for network errors
-- Try manually clicking buttons when online
 
 ### Can't Install as App
 - Requires HTTPS and valid manifest.json
@@ -173,10 +159,10 @@ When connection is restored, all pending submissions are automatically sent in o
 
 Based on the original [QRScout-googlesheets](https://github.com/Demonslayer14323/QRScout-googlesheets) project by Demonslayer14323
 
-Offline functionality added with:
-- Service Workers for caching
-- IndexedDB for local storage
+PWA functionality added with:
+- Service Workers for app caching
 - Progressive Web App standards
+- Installable app manifest
 
 ## License
 
@@ -193,17 +179,15 @@ For issues or questions:
 ## Tips for Best Results
 
 1. **Use HTTPS** - Service Workers require secure context (HTTPS) except on localhost
-2. **Test Offline** - In DevTools, go to Network tab and set throttling to "Offline"
-3. **Regular Sync** - Try to sync at least once per week to avoid data loss
-4. **Backup** - Keep your Google Sheet up to date as the source of truth
-5. **Browser Compatibility** - For best experience, use modern browsers (Chrome 45+, Firefox 44+, Safari 15+, Edge 15+)
+2. **Stay Online** - Ensure internet connection when sending data to Google Sheets
+3. **Check Errors** - If sending fails, read the error message and retry when online
+4. **Browser Compatibility** - For best experience, use modern browsers (Chrome 45+, Firefox 44+, Safari 15+, Edge 15+)
 
 ## Future Enhancements
 
 Potential improvements:
-- Batch sync with progress indicator
-- Data compression for queue storage
 - QR code scanning directly in the app
-- Export/import functionality
+- Batch data submission
+- Data validation before sending
+- Export functionality
 - Dark mode
-- Conflict resolution for duplicate submissions

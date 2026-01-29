@@ -1,6 +1,6 @@
 # QRScout Integrator Configuration
 
-This file documents the offline app configuration.
+This file documents the app configuration.
 
 ## ⚠️ OAuth Verification Issue
 
@@ -135,8 +135,7 @@ If you still want to use OAuth with Sheet IDs:
 1. **Sign in once** with your Google account
 2. **Grant permission** to edit your Google Sheets
 3. **Access token is stored locally** in your browser
-4. **Write directly to Google Sheets offline** - no internet needed after initial setup
-5. **Data syncs automatically** when connection returns
+4. **Write directly to Google Sheets** when you have internet connection
 
 ### Step 1: Create OAuth 2.0 Credentials
 
@@ -186,7 +185,7 @@ If you still want to use OAuth with Sheet IDs:
 5. Paste your **Google Sheet ID** (not URL) in the input field
 6. Paste your scouting data
 7. Click "Send to Google Sheets"
-8. **Data sends immediately** - even if you go offline!
+8. **Data sends when you have internet connection**
 
 ## Alternative: Apps Script Setup
 
@@ -207,7 +206,7 @@ If you prefer using Apps Script instead:
 1. Paste your Apps Script URL in the input field
 2. Paste your scouting data
 3. Click "Send to Google Sheets"
-4. Data queues offline and syncs when connection returns
+4. Data is sent directly when you have internet connection
 
 ## Testing
 
@@ -218,18 +217,7 @@ If you prefer using Apps Script instead:
 3. Paste test data
 4. Click "Send to Google Sheets"
 5. See "Data sent successfully" message
-6. Check your Google Sheet - **data appears instantly!** ✅
-
-### Test Offline - Google Sheets API
-
-1. Sign in to Google first (connection must be on)
-2. Open DevTools (F12)
-3. Network tab → Check "Offline"
-4. Paste your Sheet ID
-5. Paste test data
-6. Click "Send to Google Sheets"
-7. See "Data sent successfully" message **even though you're offline!** ✅
-8. Check your Sheet - data is there!
+6. Check your Google Sheet - **data appears!** ✅
 
 ### Test Online - Apps Script
 
@@ -239,18 +227,7 @@ If you prefer using Apps Script instead:
 4. See "Data sent successfully" message
 5. Check your Google Sheet for new entry
 
-### Test Offline - Apps Script
-
-1. Open DevTools (F12)
-2. Network tab → Check "Offline"
-3. Paste test data and click "Send to Google Sheets"
-4. You should see "Data queued" message
-5. Go back online
-6. See "Sent X queued submissions" message
-7. Check your Google Sheet
-
 ## Troubleshooting
-
 
 ### Service Worker Issues
 - Check that `sw.js` loads (check Network tab)
@@ -258,15 +235,11 @@ If you prefer using Apps Script instead:
 - Clear browser data: Settings → Privacy → Clear browsing data
 - Reload page and re-register
 
-### IndexedDB Issues
-- Check that IndexedDB is enabled in browser
-- Go to Application → IndexedDB → QRScoutDB
-- You should see "submissions" object store
-
-### Sync Issues
+### Sending Issues
 - Verify Apps Script URL is correct
 - Test the URL directly in browser
 - Check Google Sheet for CORS headers if needed
+- Ensure you have internet connection
 - See console (F12) for error messages
 
 ## Browser Compatibility
@@ -274,7 +247,7 @@ If you prefer using Apps Script instead:
 | Browser | Support | Notes |
 |---------|---------|-------|
 | Chrome | ✅ Full | Best support |
-| Firefox | ✅ Full | IndexedDB must be enabled |
+| Firefox | ✅ Full | Full support |
 | Safari | ⚠️ Partial | PWA works, some API limitations |
 | Edge | ✅ Full | Chromium-based |
 | Mobile Safari | ⚠️ Partial | PWA limited |
@@ -282,26 +255,23 @@ If you prefer using Apps Script instead:
 
 ## Security Notes
 
-- All data is stored locally in your browser
-- No data leaves your device except to your Apps Script
+- Your Apps Script URL is stored locally in your browser
+- No scouting data leaves your device except when sent to your Apps Script
 - Google Apps Script handles Google Sheet access
 - Use HTTPS in production for secure connection
-- Clear browser data if you want to delete stored submissions
 
 ## Performance
 
 - First load: ~50KB of assets
 - Service Worker cache: ~100KB
-- IndexedDB storage: No limit (device dependent)
-- Typical submission: <10KB stored
+- Minimal localStorage usage (just URL)
 
 ## Updates
 
 To update the app:
 1. Pull latest changes from GitHub
 2. Service Worker automatically fetches new version
-3. Existing offline data persists
-4. No manual installation needed
+3. No manual installation needed
 
 ## Support
 
