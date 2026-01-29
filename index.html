@@ -48,18 +48,7 @@
         .status-indicator.offline {
             background-color: #ff9800;
         }
-        .pending-count {
-            margin-left: auto;
-            padding: 2px 6px;
-            background-color: #ff9800;
-            color: white;
-            border-radius: 3px;
-            font-size: 11px;
-            display: none;
-        }
-        .pending-count.show {
-            display: inline-block;
-        }
+
         textarea {
             width: 100%;
             height: 200px;
@@ -149,24 +138,7 @@
         .hidden {
             display: none;
         }
-        .pending-list {
-            background-color: #fff3e0;
-            border: 1px solid #ffb74d;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 10px;
-        }
-        .pending-list h4 {
-            margin-bottom: 10px;
-            color: #e65100;
-        }
-        .pending-item {
-            background-color: white;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-left: 3px solid #ff9800;
-            font-size: 12px;
-        }
+
     </style>
 </head>
 <body>
@@ -176,7 +148,6 @@
         <div class="status-bar">
             <span class="status-indicator online" id="statusIndicator"></span>
             <span id="statusText">Online</span>
-            <span class="pending-count" id="pendingCount">0 pending</span>
             <button class="status-button" id="authButton" onclick="handleAuthClick()">Sign in to Google</button>
         </div>
         
@@ -204,13 +175,8 @@
         
         <button id="sendButton" onclick="sendToSheets()">Send to Google Sheets</button>
         <button class="secondary" onclick="clearData()">Clear</button>
-        <button class="secondary" onclick="togglePendingList()">Show Queue</button>
         
         <div id="message"></div>
-        <div id="pendingListContainer" class="pending-list hidden">
-            <h4>Queued Data (Offline)</h4>
-            <div id="pendingListItems"></div>
-        </div>
     </div>
 
     <script>
@@ -464,100 +430,6 @@
             const lines = data.trim().split('\n');
             return lines.map(line => line.split('\t'));
         }
-        // Register Service Worker for offline support
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                navigator.serviceWorker.onmessage = (event) => {
-                    if (event.data.type === 'sync-complete') {
-                        const message = document.getElementById('message');
-                        if (event.data.synced > 0) {
-                            message.innerHTML = `<div class="success">✓ Synced ${event.data.synced} submission(s)!</div>`;
-                        }
-                        updatePendingCount();
-                    }
-                };
-            }).catch(err => {
-                console.log('Service Worker registration failed:', err);
-            });
-        }
-
-        // IndexedDB for offline storage
-        let db;
-        const DB_NAME = 'QRScoutDB';
-        const STORE_NAME = 'submissions';
-
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-                request.onupgradeneeded = (e) => {
-                    const objectStore = e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                    objectStore.createIndex('synced', 'synced', { unique: false });
-                };
-            });
-        }
-
-        async function saveToPending(data, scriptUrl) {
-            if (!db) await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                objectStore.add({
-                    data: data,
-                    scriptUrl: scriptUrl,
-                    timestamp: new Date().getTime(),
-                    synced: false
-                });
-                transaction.oncomplete = () => resolve();
-                transaction.onerror = () => reject(transaction.error);
-            });
-        }
-
-        async function getPendingSubmissions(synced = false) {
-            if (!db) await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const request = objectStore.getAll();
-                request.onsuccess = () => {
-                    // Filter by synced status in JavaScript since boolean values can't be used with IDBKeyRange.only
-                    const results = request.result.filter(item => item.synced === synced);
-                    resolve(results);
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-
-        async function markAsSynced(id) {
-            if (!db) await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                const getRequest = objectStore.get(id);
-                getRequest.onsuccess = () => {
-                    const item = getRequest.result;
-                    item.synced = true;
-                    objectStore.put(item);
-                };
-                transaction.oncomplete = () => resolve();
-                transaction.onerror = () => reject(transaction.error);
-            });
-        }
-
-        async function deleteSubmission(id) {
-            if (!db) await initDB();
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const objectStore = transaction.objectStore(STORE_NAME);
-                objectStore.delete(id);
-                transaction.oncomplete = () => resolve();
-                transaction.onerror = () => reject(transaction.error);
-            });
-        }
 
         // Online/offline detection
         let isOnline = navigator.onLine;
@@ -565,8 +437,6 @@
         window.addEventListener('online', () => {
             isOnline = true;
             updateStatusBar();
-            // Immediately sync any pending data when connection restored
-            syncPendingSubmissions(true);
         });
 
         window.addEventListener('offline', () => {
@@ -583,18 +453,6 @@
             } else {
                 indicator.className = 'status-indicator offline';
                 statusText.textContent = 'Offline';
-            }
-            updatePendingCount();
-        }
-
-        async function updatePendingCount() {
-            const pending = await getPendingSubmissions(false);
-            const pendingCount = document.getElementById('pendingCount');
-            if (pending.length > 0) {
-                pendingCount.textContent = pending.length + ' pending';
-                pendingCount.classList.add('show');
-            } else {
-                pendingCount.classList.remove('show');
             }
         }
 
@@ -653,16 +511,13 @@
                 
                 if (success) {
                     message.innerHTML = `<div class="success">✓ Data sent successfully to Google Sheets (${method})!</div>`;
+                    document.getElementById('data').value = '';
                 } else {
-                    message.innerHTML = '<div class="info">✓ Data queued. Will send when connection is available.</div>';
+                    message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
                 }
-                document.getElementById('data').value = '';
-                updatePendingCount();
             } catch (error) {
                 console.error('Send error:', error);
-                message.innerHTML = '<div class="info">✓ Data queued. Will send when connection is available.</div>';
-                document.getElementById('data').value = '';
-                updatePendingCount();
+                message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
             } finally {
                 button.disabled = false;
                 button.textContent = 'Send to Google Sheets';
@@ -675,8 +530,6 @@
                 return true;
             } catch (error) {
                 console.error('Sheets API error:', error);
-                // Queue for later if offline
-                await saveToPending(data, `sheets://${sheetId}`);
                 return false;
             }
         }
@@ -697,8 +550,6 @@
                 return result.success === true;
             } catch (error) {
                 console.error('Apps Script error:', error);
-                // Queue for later if offline
-                await saveToPending(data, scriptUrl);
                 return false;
             }
         }
@@ -722,103 +573,29 @@
             }
         }
 
-        async function syncPendingSubmissions(showMessage = true) {
-            const pending = await getPendingSubmissions(false);
-            if (pending.length === 0) return;
-            
-            const message = document.getElementById('message');
-            if (showMessage) {
-                message.innerHTML = '<div class="info">Sending queued data...</div>';
-            }
-            
-            let synced = 0;
-            let failed = 0;
-            
-            for (const item of pending) {
-                let success = false;
-                
-                if (item.scriptUrl.startsWith('sheets://')) {
-                    // Google Sheets API
-                    const sheetId = item.scriptUrl.replace('sheets://', '');
-                    success = await sendViaGoogleSheetsAPI(sheetId, item.data);
-                } else {
-                    // Apps Script
-                    success = await sendViaAppsScript(item.scriptUrl, item.data);
-                }
-                
-                if (success) {
-                    await markAsSynced(item.id);
-                    synced++;
-                } else {
-                    failed++;
-                }
-            }
-            
-            if (synced > 0 && showMessage) {
-                message.innerHTML = `<div class="success">✓ Sent ${synced} queued submission(s) to Google Sheets!</div>`;
-            }
-            updatePendingCount();
-            return synced;
-        }
-
         function clearData() {
             document.getElementById('data').value = '';
             document.getElementById('message').innerHTML = '';
         }
 
-        async function togglePendingList() {
-            const container = document.getElementById('pendingListContainer');
-            container.classList.toggle('hidden');
-            if (!container.classList.contains('hidden')) {
-                await displayPendingSubmissions();
-            }
-        }
-
-        async function displayPendingSubmissions() {
-            const pending = await getPendingSubmissions(false);
-            const listItems = document.getElementById('pendingListItems');
-            
-            if (pending.length === 0) {
-                listItems.innerHTML = '<p style="text-align: center; color: #666; margin: 0;">No pending submissions</p>';
-                return;
-            }
-            
-            listItems.innerHTML = pending.map(item => `
-                <div class="pending-item">
-                    <span>${new Date(item.timestamp).toLocaleString()}</span>
-                </div>
-            `).join('');
+        // Clear any existing queued data from IndexedDB
+        function clearQueuedData() {
+            const dbRequest = indexedDB.deleteDatabase('QRScoutDB');
+            dbRequest.onsuccess = () => {
+                console.log('Cleared queued data from IndexedDB');
+            };
+            dbRequest.onerror = () => {
+                console.log('Error clearing queued data');
+            };
         }
 
         // Initialize
-        initDB().then(() => {
-            updateStatusBar();
-            // If Google library already loaded (unlikely but possible), initialize it
-            if (window.google && window.google.accounts && !googleLibraryLoaded) {
-                onGoogleLibraryLoad();
-            }
-        });
-
-        // Periodic sync every 30 seconds
-        setInterval(async () => {
-            if (isOnline) {
-                const pending = await getPendingSubmissions(false);
-                if (pending.length > 0) {
-                    syncPendingSubmissions();
-                }
-            }
-        }, 30000);
-
-        // Sync when page becomes visible
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && isOnline) {
-                getPendingSubmissions(false).then(p => {
-                    if (p.length > 0) {
-                        syncPendingSubmissions();
-                    }
-                });
-            }
-        });
+        clearQueuedData(); // Clear any old queued data
+        updateStatusBar();
+        // If Google library already loaded (unlikely but possible), initialize it
+        if (window.google && window.google.accounts && !googleLibraryLoaded) {
+            onGoogleLibraryLoad();
+        }
     </script>
 </body>
 </html>
