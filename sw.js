@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qrscout-v3';
+const CACHE_NAME = 'qrscout-v4';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -153,10 +153,13 @@ function getPendingFromDB(db) {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(['submissions'], 'readonly');
         const objectStore = transaction.objectStore('submissions');
-        const index = objectStore.index('synced');
-        const request = index.getAll(false);
+        const request = objectStore.getAll();
         
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+            // Filter by synced status in JavaScript since boolean values can't be used with IDBKeyRange.only
+            const results = request.result.filter(item => item.synced === false);
+            resolve(results);
+        };
         request.onerror = () => reject(request.error);
     });
 }

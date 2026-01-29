@@ -225,6 +225,7 @@
                 return; // Already initialized, prevent double initialization
             }
             googleLibraryLoaded = true;
+            console.log('Google Sign-In library loaded successfully');
             initializeGoogleAuth();
         }
 
@@ -234,9 +235,9 @@
             console.error('Failed to load Google Sign-In library');
             const button = document.getElementById('authButton');
             if (button) {
-                button.textContent = 'Sign-in unavailable';
-                button.disabled = true;
-                button.title = 'Google Sign-In library could not be loaded. Check your internet connection or browser extensions.';
+                button.textContent = 'Retry Sign-In';
+                button.disabled = false;
+                button.title = 'Google Sign-In library could not be loaded. Click to retry or check your internet connection/browser extensions.';
             }
         }
 
@@ -244,6 +245,8 @@
         function initializeGoogleAuth() {
             if (!window.google || !window.google.accounts) {
                 console.error('Google library not available');
+                googleLibraryError = true;
+                onGoogleLibraryError();
                 return;
             }
 
@@ -260,6 +263,13 @@
                     accessToken = storedToken;
                     userEmail = localStorage.getItem('google_user_email');
                     updateAuthButton();
+                } else {
+                    // Update button to show ready state
+                    const button = document.getElementById('authButton');
+                    if (button) {
+                        button.textContent = 'Sign in to Google';
+                        button.disabled = false;
+                    }
                 }
             } catch (error) {
                 console.error('Error initializing Google Auth:', error);
@@ -269,7 +279,32 @@
 
         function handleAuthClick() {
             if (googleLibraryError) {
-                document.getElementById('message').innerHTML = '<div class="error">Google Sign-In is unavailable. The library could not be loaded. Please check your internet connection or disable ad blockers.</div>';
+                // Retry loading the Google library
+                document.getElementById('message').innerHTML = '<div class="info">Attempting to reload Google Sign-In library...</div>';
+                googleLibraryError = false;
+                googleLibraryLoaded = false;
+                
+                // Remove old script
+                const oldScript = document.querySelector('script[src*="accounts.google.com"]');
+                if (oldScript) {
+                    oldScript.remove();
+                }
+                
+                // Add new script
+                const script = document.createElement('script');
+                script.src = 'https://accounts.google.com/gsi/client';
+                script.async = true;
+                script.defer = true;
+                script.onload = onGoogleLibraryLoad;
+                script.onerror = () => {
+                    onGoogleLibraryError();
+                    document.getElementById('message').innerHTML = '<div class="error">Failed to load Google Sign-In. Please check your internet connection or disable ad blockers/privacy extensions that might be blocking Google services.</div>';
+                };
+                document.head.appendChild(script);
+                
+                const button = document.getElementById('authButton');
+                button.textContent = 'Loading...';
+                button.disabled = true;
                 return;
             }
 
@@ -328,12 +363,16 @@
 
         function updateAuthButton() {
             const button = document.getElementById('authButton');
+            if (!button) return;
+            
             if (accessToken) {
-                button.textContent = `Signed in as ${userEmail}`;
+                button.textContent = userEmail ? `Signed in as ${userEmail}` : 'Signed in';
                 button.classList.add('signed-in');
+                button.disabled = false;
             } else {
                 button.textContent = 'Sign in to Google';
                 button.classList.remove('signed-in');
+                button.disabled = false;
             }
         }
 
@@ -441,10 +480,12 @@
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction([STORE_NAME], 'readonly');
                 const objectStore = transaction.objectStore(STORE_NAME);
-                const index = objectStore.index('synced');
-                const range = IDBKeyRange.only(synced);
-                const request = index.getAll(range);
-                request.onsuccess = () => resolve(request.result);
+                const request = objectStore.getAll();
+                request.onsuccess = () => {
+                    // Filter by synced status in JavaScript since boolean values can't be used with IDBKeyRange.only
+                    const results = request.result.filter(item => item.synced === synced);
+                    resolve(results);
+                };
                 request.onerror = () => reject(request.error);
             });
         }
