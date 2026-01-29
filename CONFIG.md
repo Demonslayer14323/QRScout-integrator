@@ -2,9 +2,133 @@
 
 This file documents the offline app configuration.
 
-## Google Sheets Direct Access Setup (Recommended for Offline)
+## ⚠️ OAuth Verification Issue
 
-The app now supports **direct offline writing to Google Sheets** using OAuth 2.0 authentication!
+**Getting "Access blocked" error when signing in with Google?**
+
+This app hasn't completed Google's OAuth verification process. See [OAUTH_TROUBLESHOOTING.md](OAUTH_TROUBLESHOOTING.md) for solutions.
+
+**Quick Solution:** Use Apps Script instead of Google Sign-In (see below). It works immediately without verification.
+
+## Apps Script Setup (Recommended ✅)
+
+The **easiest and most reliable method** - no Google Sign-In needed!
+
+### Why Use Apps Script?
+
+- ✅ **No OAuth verification needed**
+- ✅ **Works for all users immediately**
+- ✅ **No Google Sign-In required**
+- ✅ **Simple setup (10 minutes)**
+- ✅ **More reliable than OAuth**
+
+### Step 1: Create Apps Script
+
+1. **Open your Google Sheet** where you want to collect data
+2. **Go to Extensions → Apps Script**
+3. **Delete any existing code** in the editor
+4. **Paste this code:**
+
+```javascript
+function doPost(e) {
+  try {
+    // Get the active spreadsheet and sheet
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Get the data from the POST request
+    const data = e.parameter.data;
+    
+    if (!data) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        message: 'No data provided'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Parse tab-delimited data into rows
+    const rows = data.trim().split('\n').map(row => row.split('\t'));
+    
+    // Append each row to the sheet
+    rows.forEach(row => {
+      sheet.appendRow(row);
+    });
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: `Successfully added ${rows.length} row(s)`
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error: ' + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// Test function (optional - for testing in the editor)
+function testDoPost() {
+  const testData = {
+    parameter: {
+      data: "Team\tMatch\tScore\n1234\t1\t50\n5678\t2\t75"
+    }
+  };
+  
+  const result = doPost(testData);
+  Logger.log(result.getContent());
+}
+```
+
+5. **Save the project** (give it a name like "QRScout Data Receiver")
+
+### Step 2: Deploy as Web App
+
+1. **Click "Deploy" → "New deployment"**
+2. **Click the gear icon ⚙️ → Select "Web app"**
+3. **Configure the deployment:**
+   - Description: "QRScout Data Integrator" (optional)
+   - Execute as: **Me** (your account)
+   - Who has access: **Anyone**
+4. **Click "Deploy"**
+5. **Grant permissions:**
+   - Click "Authorize access"
+   - Choose your Google account
+   - Click "Advanced" → "Go to [project name] (unsafe)" (it's safe, it's your own script)
+   - Click "Allow"
+6. **Copy the Web App URL**
+   - It looks like: `https://script.google.com/macros/s/AKfycby.../exec`
+   - **Save this URL - you'll need it!**
+
+### Step 3: Use in the Integrator
+
+1. **Open the QRScout Integrator app**
+2. **Paste your Apps Script URL** in the input field (NOT a Sheet ID)
+3. **Paste your QRScout data** in the text area
+4. **Click "Send to Google Sheets"**
+5. **Check your Google Sheet** - data should appear!
+
+### Testing Your Apps Script
+
+To test if your Apps Script is working:
+
+1. You can run the `testDoPost()` function in the Apps Script editor
+2. Check "Execution log" to see the results
+3. Or test with curl:
+```bash
+curl -X POST "YOUR_WEB_APP_URL" -d "data=Test\tData\nRow1\tValue1"
+```
+
+## Alternative: Google Sheets Direct Access (OAuth)
+
+⚠️ **Not recommended due to OAuth verification requirements.** Use Apps Script instead.
+
+If you still want to use OAuth with Sheet IDs:
+
+### Requirements
+
+- Must complete Google's OAuth verification process, OR
+- Add all users as test users in Google Cloud Console
+- See [OAUTH_TROUBLESHOOTING.md](OAUTH_TROUBLESHOOTING.md) for details
 
 ### How It Works
 

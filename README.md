@@ -2,6 +2,23 @@
 
 A progressive web app (PWA) that allows you to use the QRScout data integrator **completely offline** while maintaining the ability to send data to Google Sheets when you're back online.
 
+## ⚠️ Important: Google OAuth Issue
+
+**If you get "Access blocked: This app has not completed Google verification"** when signing in:
+
+This is expected! The app hasn't completed Google's OAuth verification process. **You have two options:**
+
+1. **✅ Use Apps Script (Recommended):** No Google Sign-In needed, works immediately
+   - See [CONFIG.md](CONFIG.md) for Apps Script setup instructions
+   - This is the easiest and most reliable method
+
+2. **Add yourself as a test user:** If you want to use Google Sign-In
+   - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials/consent)
+   - Add your email to "Test users"
+   - See [OAUTH_TROUBLESHOOTING.md](OAUTH_TROUBLESHOOTING.md) for detailed instructions
+
+**For most users, we recommend using Apps Script instead of Google Sign-In.**
+
 ## Features
 
 ✅ **Works Completely Offline** - Use the app without internet connection
