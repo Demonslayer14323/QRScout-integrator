@@ -6,7 +6,6 @@
     <title>QRScout Standalone Integrator</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4285f4">
-    <script src="https://accounts.google.com/gsi/client" async defer onload="onGoogleLibraryLoad()" onerror="onGoogleLibraryError()"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -262,21 +261,44 @@
                     oldScript.remove();
                 }
                 
+                const button = document.getElementById('authButton');
+                button.textContent = 'Loading...';
+                button.disabled = true;
+                
+                // Use the same loading logic with timeout
+                let scriptLoadCompleted = false;
+                
+                const timeout = setTimeout(() => {
+                    if (!scriptLoadCompleted && !googleLibraryLoaded) {
+                        scriptLoadCompleted = true;
+                        onGoogleLibraryError();
+                        document.getElementById('message').innerHTML = '<div class="error">Failed to load Google Sign-In. Please check your internet connection or disable ad blockers/privacy extensions that might be blocking Google services.</div>';
+                    }
+                }, 5000);
+                
                 // Add new script
                 const script = document.createElement('script');
                 script.src = 'https://accounts.google.com/gsi/client';
                 script.async = true;
                 script.defer = true;
-                script.onload = onGoogleLibraryLoad;
+                script.onload = () => {
+                    if (!scriptLoadCompleted) {
+                        scriptLoadCompleted = true;
+                        clearTimeout(timeout);
+                        onGoogleLibraryLoad();
+                        document.getElementById('message').innerHTML = '<div class="success">Google Sign-In loaded successfully!</div>';
+                    }
+                };
                 script.onerror = () => {
-                    onGoogleLibraryError();
-                    document.getElementById('message').innerHTML = '<div class="error">Failed to load Google Sign-In. Please check your internet connection or disable ad blockers/privacy extensions that might be blocking Google services.</div>';
+                    if (!scriptLoadCompleted) {
+                        scriptLoadCompleted = true;
+                        clearTimeout(timeout);
+                        onGoogleLibraryError();
+                        document.getElementById('message').innerHTML = '<div class="error">Failed to load Google Sign-In. Please check your internet connection or disable ad blockers/privacy extensions that might be blocking Google services.</div>';
+                    }
                 };
                 document.head.appendChild(script);
                 
-                const button = document.getElementById('authButton');
-                button.textContent = 'Loading...';
-                button.disabled = true;
                 return;
             }
 
@@ -479,6 +501,12 @@
                 return;
             }
             
+            // Check if online before attempting to send
+            if (!navigator.onLine) {
+                message.innerHTML = '<div class="error">⚠️ No internet connection. Please connect to the internet and try again. Data will NOT be sent automatically when connection returns.</div>';
+                return;
+            }
+            
             button.disabled = true;
             button.textContent = 'Sending...';
             message.innerHTML = '';
@@ -524,7 +552,11 @@
                 }
             } catch (error) {
                 console.error('Send error:', error);
-                message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
+                if (!navigator.onLine) {
+                    message.innerHTML = '<div class="error">⚠️ Connection lost while sending. Please check your internet connection and try again.</div>';
+                } else {
+                    message.innerHTML = '<div class="error">✗ Failed to send data. Please check your connection and try again.</div>';
+                }
             } finally {
                 button.disabled = false;
                 button.textContent = 'Send to Google Sheets';
@@ -566,23 +598,56 @@
             document.getElementById('message').innerHTML = '';
         }
 
-        // Clear any existing queued data from IndexedDB
-        function clearQueuedData() {
-            const dbRequest = indexedDB.deleteDatabase('QRScoutDB');
-            dbRequest.onsuccess = () => {
-                console.log('Cleared queued data from IndexedDB');
-            };
-            dbRequest.onerror = () => {
-                console.log('Error clearing queued data');
-            };
-        }
-
         // Initialize
-        clearQueuedData(); // Clear any old queued data
         updateStatusBar();
-        // If Google library already loaded (unlikely but possible), initialize it
-        if (window.google && window.google.accounts && !googleLibraryLoaded) {
-            onGoogleLibraryLoad();
+        
+        // Load Google Sign-In library dynamically with timeout for offline support
+        function loadGoogleLibrary() {
+            // Check if already loaded
+            if (window.google && window.google.accounts) {
+                onGoogleLibraryLoad();
+                return;
+            }
+            
+            let scriptLoadCompleted = false;
+            
+            // Set a timeout to handle offline scenarios - don't let it block the app
+            const timeout = setTimeout(() => {
+                if (!scriptLoadCompleted && !googleLibraryLoaded) {
+                    console.log('Google Sign-In library loading timeout (offline mode)');
+                    scriptLoadCompleted = true;
+                    onGoogleLibraryError();
+                }
+            }, 5000); // 5 second timeout
+            
+            // Try to load the Google library
+            const script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client';
+            script.async = true;
+            script.defer = true;
+            script.onload = () => {
+                if (!scriptLoadCompleted) {
+                    scriptLoadCompleted = true;
+                    clearTimeout(timeout);
+                    onGoogleLibraryLoad();
+                }
+            };
+            script.onerror = () => {
+                if (!scriptLoadCompleted) {
+                    scriptLoadCompleted = true;
+                    clearTimeout(timeout);
+                    onGoogleLibraryError();
+                }
+            };
+            document.head.appendChild(script);
+        }
+        
+        // Load Google library after page is ready (non-blocking)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGoogleLibrary);
+        } else {
+            // DOM already loaded
+            loadGoogleLibrary();
         }
     </script>
 </body>
