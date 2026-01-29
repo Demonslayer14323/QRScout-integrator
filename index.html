@@ -221,6 +221,9 @@
 
         // Callback when Google library loads successfully
         function onGoogleLibraryLoad() {
+            if (googleLibraryLoaded) {
+                return; // Already initialized, prevent double initialization
+            }
             googleLibraryLoaded = true;
             initializeGoogleAuth();
         }
@@ -266,7 +269,7 @@
 
         function handleAuthClick() {
             if (googleLibraryError) {
-                document.getElementById('message').innerHTML = '<div class="error">Google Sign-In is unavailable. Please check your internet connection or disable ad blockers.</div>';
+                document.getElementById('message').innerHTML = '<div class="error">Google Sign-In is unavailable. The library could not be loaded. Please check your internet connection or disable ad blockers.</div>';
                 return;
             }
 

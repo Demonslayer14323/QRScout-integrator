@@ -54,7 +54,6 @@ The Google Sign-In button now properly waits for the Google library to load befo
 - ✅ Button shows "Sign-in unavailable" (grayed out)
 - ✅ Button is disabled
 - ✅ Hovering shows tooltip: "Google Sign-In library could not be loaded. Check your internet connection or browser extensions."
-- ✅ Clicking the button shows error message: "Google Sign-In is unavailable. Please check your internet connection or disable ad blockers."
 - ✅ Rest of the app still works (can still use Apps Script URL method)
 
 ### Scenario 3: Slow Network Connection
