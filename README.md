@@ -118,7 +118,7 @@ Deploy the files to any static hosting service:
 ### File Structure
 ```
 ├── index.html          # Main application
-├── sw.js              # Service Worker for offline support
+├── sw.js              # Service Worker for offline app caching
 ├── manifest.json      # PWA manifest
 └── README.md          # This file
 ```
