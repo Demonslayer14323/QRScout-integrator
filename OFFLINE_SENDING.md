@@ -1,80 +1,43 @@
-# Offline Data Sending - How It Works
+# Data Sending - How It Works
 
-## The Flawless Process
+## Direct Send Only
 
 When you click "Send to Google Sheets", the app now does this:
 
-### Step 1: Always Save First
-- Data is immediately saved to browser storage (IndexedDB)
-- This ensures data is never lost, even if the browser crashes
+### Step 1: Validate Input
+- Checks that data is provided
+- Checks that a valid Apps Script URL or Sheet ID is provided
 
-### Step 2: Attempt Immediate Send
-- App tries to send to Google Sheets right away
+### Step 2: Attempt Direct Send
+- App tries to send to Google Sheets immediately
 - If internet is available → Sends immediately ✅ **Data appears in your Google Sheet**
-- If internet unavailable → Data is queued automatically
+- If internet unavailable → Shows error and asks you to try again later
 
-### Step 3: Automatic Retry (When Offline)
-- If send fails, data stays queued in storage
-- Multiple automatic retry mechanisms activate:
-  - **Instant Retry**: Attempts retry as soon as connection returns
-  - **Periodic Retry**: Checks every 30 seconds if online
-  - **Tab Visibility**: Syncs when you return to the app
-  - **Background Sync**: Browser-level sync API (Chrome/Firefox)
+### Step 3: User Feedback
+- Success: "✓ Data sent successfully to Google Sheets!"
+- Failure: "✗ Failed to send data. Please check your connection and try again."
 
-### Step 4: Automatic Transmission
-The moment your connection returns, queued data automatically sends:
+## No Queuing
 
-**Layer 1: Connection Restored Event**
-- Instant sync when WiFi/internet reconnects
-- You see confirmation immediately
-- Most responsive method
+The queuing feature has been permanently removed. Data is only sent when you click the "Send to Google Sheets" button and have an active internet connection.
 
-**Layer 2: App-Level Periodic Retry**
-- App checks every 30 seconds if online
-- Automatically attempts to send queued data
-- Retries as long as data is pending
-
-**Layer 3: Tab Visibility Sync**
-- When you return to the app tab
-- App syncs any pending data immediately
-- You see confirmation in real-time
-
-**Layer 4: Browser Background Sync API**
-- Browser automatically sends when connection returns
-- Even if you close the browser
-- Works across browser sessions
-- Supported in Chrome, Firefox, Edge
+If the send fails:
+- You will see an error message
+- Your data will remain in the text box
+- You can try sending again when you have internet connection
 
 ## Immediate Sending When Online
 
-**If online:** Data saves + sends immediately → "Data sent successfully to Google Sheets!" → Done
-**If offline:** Data saves + queues → "Data queued. Will send when connection is available." → Auto-sends when online
+**If online:** Data sends immediately → "Data sent successfully to Google Sheets!" → Done
+**If offline:** Shows error → Data stays in text box → You can retry when online
 
-The moment you get connectivity, all queued data automatically sends to Google Sheets.
+## Browser Requirements
 
-## What Happens When Offline
+- **Chrome/Edge/Firefox** - Full support
+- **Safari** - Full support
+- **Mobile browsers** - Full support
 
-1. You paste scouting data
-2. Click "Send to Google Sheets"
-3. **App saves data to storage**
-4. **App tries to send → Fails (no internet)**
-5. **Message: "Data queued. Will send when connection is available."**
-6. **You continue working normally**
-7. When internet returns → **Data sends automatically**
-8. **You see: "Sent X queued submission(s) to Google Sheets!"**
-9. **Check your Google Sheet → Data now appears!** ✅
-
-## Reliability Features
-
-✅ **Persistent Storage** - Data saved in IndexedDB
-✅ **Multiple Sync Methods** - Background Sync + App retries + Manual sync
-✅ **Automatic Retry** - Every 30 seconds when online
-✅ **Browser-Level Sync** - Works even if app is closed
-✅ **Real-time Feedback** - You see when data syncs
-✅ **No Data Loss** - Data stays until confirmed sent
-✅ **Queue Management** - View/delete pending if needed
-
-## Testing Immediate Sending
+## Testing
 
 ### Scenario 1: Online (Normal Use)
 1. **Ensure you're online**
@@ -82,85 +45,23 @@ The moment you get connectivity, all queued data automatically sends to Google S
 3. **See message** → "Data sent successfully to Google Sheets!"
 4. **Check your Google Sheet immediately** → Data appears instantly! ✅
 
-### Scenario 2: Offline Queueing
+### Scenario 2: Offline (Error Handling)
 1. **Open the app** in browser
 2. **Open DevTools** (F12)
 3. **Disable internet** → Network tab → Check "Offline"
 4. **Paste test data** → Click "Send to Google Sheets"
-5. **See message** → "Data queued. Will send when connection is available."
-6. **Check your Google Sheet** → Data is NOT there yet (offline)
+5. **See message** → "Failed to send data. Please check your connection and try again."
+6. **Data remains in the text box** → You can retry when online
 7. **Enable internet** → Uncheck "Offline" in DevTools
-8. **See notification** → "Sent 1 queued submission(s) to Google Sheets!"
-9. **Check Google Sheet** → Data now appears! ✅
-
-## Browser Requirements
-
-- **Chrome/Edge/Firefox** - Full support (all features)
-- **Safari** - Background Sync not supported, but app sync works
-- **Mobile browsers** - All support the automatic retry layer
-
-## What's Flawless About It
-
-1. **Immediate Sending** - Data sends to Google Sheets instantly when online
-2. **Smart Queueing** - Only queues if connection is unavailable
-3. **No Data Loss** - Data stored safely in IndexedDB until confirmed sent
-4. **Multiple Fallbacks** - Multiple automatic retry methods if first attempt fails
-5. **Always Works** - Even if browser closes and reopens
-6. **User Friendly** - Clear feedback: success or queued message
-7. **Automatic Sync** - Sends queued data automatically when connection returns
-8. **Fire and Forget** - Click send and it handles everything
-9. **Transparent** - User sees exactly what's happening in real-time
-
-## Under the Hood
-
-**When you click "Send":**
-
-```
-1. Save to IndexedDB (ensures data never lost)
-2. Attempt fetch to Google Sheets Apps Script
-   ├─ If SUCCESS: Show "Data sent successfully!"
-   └─ If FAILURE: Data stays in IndexedDB
-3. If offline/failed:
-   ├─ Every 30 seconds: Check if online → Retry send
-   ├─ When tab visible: Retry send immediately
-   ├─ When connection returns: Sync all pending data
-   └─ Browser Background Sync: Additional fallback
-```
-
-This multi-layer approach ensures your data always reaches Google Sheets.
-User Input
-    ↓
-Save to IndexedDB (backup)
-    ↓
-Try Immediate Send
-    ├─ Success? → Clear storage + Show ✅
-    └─ Fail? → Keep in storage → Register Background Sync
-              ↓
-        Browser Background Sync API handles it
-              ↓
-        Connection restored → Browser sends automatically
-              ↓
-        App Layer: Also checks every 30 seconds
-              ↓
-        Tab Visibility Layer: Retries when tab active
-              ↓
-        Data sent to Google Sheets ✅
-```
-
-## No Localhost Limitations
-
-- Works on any domain
-- Works on mobile devices
-- Works offline completely
-- Works with custom Apps Script URLs
-- No special server needed
+8. **Click "Send to Google Sheets" again**
+9. **See message** → "Data sent successfully to Google Sheets!"
+10. **Check Google Sheet** → Data now appears! ✅
 
 ## Summary
 
-Your data is **guaranteed** to reach Google Sheets because:
-1. It's saved locally immediately
-2. Browser automatically syncs when possible
-3. App continuously retries
-4. Multiple methods work together
-5. Works even if browser closes
-6. No data ever lost
+Your data will reach Google Sheets when:
+1. You have an active internet connection
+2. You click "Send to Google Sheets"
+3. The send completes successfully
+
+**No automatic retries or background syncing** - you are in full control of when data is sent.
